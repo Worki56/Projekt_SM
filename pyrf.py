@@ -21,7 +21,7 @@ ile=count()
 spaw=0
 wyraz_tyczas=""
 def myfunc():
-    fdf=input("Podaj ilość obrotów (2cyfry)\n")
+    fdf=input("Podaj ilość obrotów na 0.25s (2 cyfry max 14)\n")
     stm32.write(fdf.encode())
     global n
     n=0

@@ -22,7 +22,6 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "bh1750.h"
 #include <stdio.h>
 #include <string.h>
 /* USER CODE END Includes */
@@ -73,22 +72,32 @@ static void MX_TIM4_Init(void);
 /* USER CODE BEGIN PFP */
 int impulsy;
 char msg [50];
-float BH1750_lux;
 int i=0;
 int i2=0;
+int i3=0;
 float AdcValue;
 int rozmiar_dan=1000;
 int wyniki [1000];
 int obr=0;
 int okolica;
 float min_proc1=400;
-int obroty=0;
+int obroty;
 int obrotys=0;
-int niewiem1=0;
-int niewiem2=0;
+int koka;
 uint8_t key[2];
-
-
+float kp=1000;
+float ki=750;
+float kd=0;
+float e;
+float e_sum;
+float e_sump;
+float e_last;
+float u;
+float u_next;
+float u_last1;
+float u_last2;
+float u_last3;
+float dt=0.25;
 
 /* USER CODE END PFP */
 
@@ -153,21 +162,16 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 	  impulsy = __HAL_TIM_GET_COUNTER(&htim1);
-	  __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, impulsy*25);
 	  HAL_ADC_Start(&hadc1);
 	  HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
 	  AdcValue = HAL_ADC_GetValue(&hadc1);
 	  HAL_Delay(1);
 	  wyniki[i]=AdcValue;
-	  niewiem1=wyniki[(i-1)%(rozmiar_dan+1)];
-	  if(wyniki[(i-1)%(rozmiar_dan+1)]!=0){
-
+	  if(wyniki[(i-1)%(rozmiar_dan+1)]!=0)
+	  {
 		  for(i2 = 1; i2 < rozmiar_dan; i2++)
 		  {
-
 			  if(obr==0){
-
-
 				  if((wyniki[abs((i-i2)%(rozmiar_dan+1))]-min_proc1)>wyniki[i])
 				  {
 					  okolica=wyniki[abs((i-i2)%(rozmiar_dan+1))];
@@ -186,31 +190,18 @@ int main(void)
 			  }
 			  else
 			  {
-				  if(okolica<wyniki[i]+300 )
+				  if(okolica<wyniki[i]+200 )
 				  {
-
 					  obr=0;
 					  i=-1;
 					  obroty++;
 					  memset(wyniki, 0, 1000 * sizeof(int));
 					  break;
 				  }
-				  else
-				  {
-					  break;
-				  }
-
 			  }
 		  }
 	  }
-	  else
-	  {
-		  niewiem1++;
-	  }
-
 	  i=(i+1)%(rozmiar_dan+1);
-
-
   }
   /* USER CODE END 3 */
 }
@@ -384,7 +375,7 @@ static void MX_TIM1_Init(void)
   htim1.Instance = TIM1;
   htim1.Init.Prescaler = 2;
   htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim1.Init.Period = 100;
+  htim1.Init.Period = 14;
   htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim1.Init.RepetitionCounter = 0;
   htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
@@ -536,7 +527,7 @@ static void MX_TIM14_Init(void)
   htim14.Instance = TIM14;
   htim14.Init.Prescaler = 7199;
   htim14.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim14.Init.Period = 9999;
+  htim14.Init.Period = 2499;
   htim14.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim14.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim14) != HAL_OK)
@@ -717,7 +708,32 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   if (htim == &htim14 )
   {
 	obrotys=obroty;
-    obroty=0;
+	obroty=0;
+    e=impulsy-obrotys;
+    e_sum=e_sump+(e - e_last);
+    e_sump=e_sum;
+    if(impulsy==0)
+    {
+    	u_next=0;
+    }
+    else
+    {
+    	u_next =465+( kp*e + ki*e_sum*(dt/2) + kd*(e - e_last)/dt);
+    }
+    e_last=e;
+    if(u_next<0)
+    {
+    	u_next=0;
+    }
+    else if(u_next>2499)
+    {
+    	u_next=2499;
+    }
+    u_next=(u_next+u_last1+u_last2+u_last3)/4;
+    u_last3=u_last2;
+    u_last2=u_last1;
+    u_last1=u_next;
+	 __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, u_next);
     sprintf(msg,"%d %d ", obrotys,impulsy);
 	HAL_UART_Transmit(&huart3, (uint8_t*)msg, strlen(msg), 1000);
   }
@@ -729,8 +745,8 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 	if (huart == &huart3)
 	{
 	    HAL_UART_Receive_IT(&huart3, key, 2);
-	    niewiem2=(key[0]-48)*10+(key[1]-48);
-	    __HAL_TIM_SetCounter(&htim1,niewiem2);
+	    koka=(key[0]-48)*10+(key[1]-48);
+	    __HAL_TIM_SetCounter(&htim1,koka);
 
 	}
 }
