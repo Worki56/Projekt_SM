@@ -98,6 +98,7 @@ float u_last1;
 float u_last2;
 float u_last3;
 float dt=0.25;
+float obroty_last;
 
 /* USER CODE END PFP */
 
@@ -707,9 +708,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
   if (htim == &htim14 )
   {
-	obrotys=obroty;
+	obrotys=(obroty*10+obroty_last)/2;
+	e=impulsy-obroty;
+	obroty_last=obrotys;
 	obroty=0;
-    e=impulsy-obrotys;
+
     e_sum=e_sump+(e - e_last);
     e_sump=e_sum;
     if(impulsy==0)
@@ -729,7 +732,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     {
     	u_next=2499;
     }
+
     u_next=(u_next+u_last1+u_last2+u_last3)/4;
+
+
+
     u_last3=u_last2;
     u_last2=u_last1;
     u_last1=u_next;
