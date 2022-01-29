@@ -8,9 +8,11 @@ Silnik wyposarzony jest w śmigło, które skonstrułowane jest tak by tylko raz
 	
 ## Komponenty projektu
 * Moduł NUCLEO F746 ZG
-* Silnik rc300-ft-08800
+* Silnik 3C146312
 * Enkoder z przyciskiem - Iduino SE055
 * Tranzystor S9013
 * Fotorezystor
 * Bateria 9V
-* Dioda, 2 rezystory, przłącznik
+* Dioda, 3 rezystory, przełącznik
+* Moduł zasilający MB102
+* Powerbank
