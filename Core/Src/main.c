@@ -144,7 +144,7 @@ int main(void)
   MX_TIM14_Init();
   MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
-
+  /* inicjacja potrzebnych elementów */
   HAL_TIM_Encoder_Start(&htim1, TIM_CHANNEL_ALL);
   HAL_TIM_PWM_Start (&htim3, TIM_CHANNEL_3);
   HAL_TIM_Base_Start(&htim4);
@@ -162,16 +162,20 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+      /* sczytanie wartości z enkodera*/
 	  impulsy = __HAL_TIM_GET_COUNTER(&htim1);
+	  /* szczytanie wartości z dzielnika napięcia*/
 	  HAL_ADC_Start(&hadc1);
 	  HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
 	  AdcValue = HAL_ADC_GetValue(&hadc1);
 	  HAL_Delay(1);
 	  wyniki[i]=AdcValue;
+	  /* zobserwowanie obrotu*/
 	  if(wyniki[(i-1)%(rozmiar_dan+1)]!=0)
 	  {
 		  for(i2 = 1; i2 < rozmiar_dan; i2++)
 		  {
+			  /* zobserwowanie spadku*/
 			  if(obr==0){
 				  if((wyniki[abs((i-i2)%(rozmiar_dan+1))]-min_proc1)>wyniki[i])
 				  {
@@ -180,6 +184,7 @@ int main(void)
 					  break;
 				  }
 			  }
+			  /* zobserwowanie wzrostu*/
 			  else if(obr==1)
 			  {
 				  if((wyniki[abs((i-i2)%(rozmiar_dan+1))]+min_proc1)<wyniki[i])
@@ -189,6 +194,7 @@ int main(void)
 					  break;
 				  }
 			  }
+			  /* zobserwowanie osiągnięcia stanu wysokiego*/
 			  else
 			  {
 				  if(okolica<wyniki[i]+200 )
@@ -703,18 +709,22 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+/* wykonywanie z częstotliwościa 4Hz*/
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 
   if (htim == &htim14 )
   {
+	 /* Średnia z 2 ostatnich wyników obrotów*/
 	obrotys=(obroty*10+obroty_last)/2;
+	/* PID*/
 	e=impulsy-obroty;
 	obroty_last=obrotys;
 	obroty=0;
 
     e_sum=e_sump+(e - e_last);
     e_sump=e_sum;
+    /*Dodanie wartości stałej potrzebnej aby pokonać bezwładność*/
     if(impulsy==0)
     {
     	u_next=0;
@@ -724,6 +734,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     	u_next =465+( kp*e + ki*e_sum*(dt/2) + kd*(e - e_last)/dt);
     }
     e_last=e;
+    /*Saturacja */
     if(u_next<0)
     {
     	u_next=0;
@@ -732,25 +743,25 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     {
     	u_next=2499;
     }
-
+    /* Filtr FIR*/
     u_next=(u_next+u_last1+u_last2+u_last3)/4;
-
-
-
     u_last3=u_last2;
     u_last2=u_last1;
     u_last1=u_next;
+    /* Zadanie wypełnienia PWM*/
 	 __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, u_next);
+	 /*Wysłanie informacji przez USART */
     sprintf(msg,"%d %d ", obrotys,impulsy);
 	HAL_UART_Transmit(&huart3, (uint8_t*)msg, strlen(msg), 1000);
   }
 }
-
+/*Otrzymanie wartości zadanej przez program "komunikacja"*/
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 
 	if (huart == &huart3)
 	{
+		/*konwersja*/
 	    HAL_UART_Receive_IT(&huart3, key, 2);
 	    koka=(key[0]-48)*10+(key[1]-48);
 	    __HAL_TIM_SetCounter(&htim1,koka);
