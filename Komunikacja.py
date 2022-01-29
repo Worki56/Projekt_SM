@@ -5,7 +5,7 @@ from itertools import count
 from threading import Thread
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
-
+#Połączenie z portem COM
 stm32 = serial.Serial('COM3', 115200, timeout=0.01)
 x=50
 esa='40'
@@ -21,6 +21,7 @@ wyniki2=[]
 ile=count()
 spaw=0
 wyraz_tyczas=""
+#Funkcja sprawdzająca czy użytkownik wprowadził wartość
 def myfunc():
     fdf=input("Podaj ilość obrotów na 0.25s (2 cyfry max 14)\n")
     stm32.write(fdf.encode())
@@ -29,10 +30,11 @@ def myfunc():
     return
 
 while True:
-
+    #otrzymanie danych
     data = stm32.readline()
     if data:
         data = data.decode()
+        #wykrycie interesujących danych
         for i in range(0, len(data)):
 
             if data[i] == " " or data[i] == "\n":
@@ -46,6 +48,7 @@ while True:
             else:
                 wyraz_tyczas = wyraz_tyczas + data[i]
         wyniki2.append(next(ile))
+        #aktualizacja danych na wykresie
         plt.cla()
         plt.plot(wyniki2[-100:-1],wyniki[-100:-1])
         plt.plot(wyniki2[-100:-1],wyniki1[-100:-1])
