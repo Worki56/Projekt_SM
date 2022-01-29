@@ -12,7 +12,6 @@ Silnik wyposarzony jest w śmigło, które skonstrułowane jest tak by tylko raz
 * Enkoder z przyciskiem - Iduino SE055
 * Tranzystor S9013
 * Fotorezystor
-* Bateria 9V
 * Dioda, 3 rezystory, przełącznik
 * Moduł zasilający MB102
 * Powerbank
